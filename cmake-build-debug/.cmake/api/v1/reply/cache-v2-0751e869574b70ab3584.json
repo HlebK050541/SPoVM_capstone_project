@@ -614,6 +614,30 @@
 			"value" : "OFF"
 		},
 		{
+			"name" : "CMAKE_HAVE_LIBC_PTHREAD",
+			"properties" : 
+			[
+				{
+					"name" : "HELPSTRING",
+					"value" : "Test CMAKE_HAVE_LIBC_PTHREAD"
+				}
+			],
+			"type" : "INTERNAL",
+			"value" : "1"
+		},
+		{
+			"name" : "CMAKE_HAVE_PTHREAD_H",
+			"properties" : 
+			[
+				{
+					"name" : "HELPSTRING",
+					"value" : "Have include pthread.h"
+				}
+			],
+			"type" : "INTERNAL",
+			"value" : "1"
+		},
+		{
 			"name" : "CMAKE_HOME_DIRECTORY",
 			"properties" : 
 			[
@@ -851,7 +875,7 @@
 				}
 			],
 			"type" : "STATIC",
-			"value" : "Project"
+			"value" : "your_project_name"
 		},
 		{
 			"name" : "CMAKE_RANLIB",
@@ -1230,6 +1254,18 @@
 			"value" : "FALSE"
 		},
 		{
+			"name" : "FIND_PACKAGE_MESSAGE_DETAILS_Threads",
+			"properties" : 
+			[
+				{
+					"name" : "HELPSTRING",
+					"value" : "Details about finding Threads"
+				}
+			],
+			"type" : "INTERNAL",
+			"value" : "[TRUE][v()]"
+		},
+		{
 			"name" : "Project_BINARY_DIR",
 			"properties" : 
 			[
@@ -1255,6 +1291,42 @@
 		},
 		{
 			"name" : "Project_SOURCE_DIR",
+			"properties" : 
+			[
+				{
+					"name" : "HELPSTRING",
+					"value" : "Value Computed by CMake"
+				}
+			],
+			"type" : "STATIC",
+			"value" : "C:/Users/jeron/Documents/3.\u041e\u0431\u0443\u0447\u0435\u043d\u0438\u0435/3 \u041a\u0443\u0440\u0441/6 \u0421\u0435\u043c/\u0421\u041f\u043e\u0412\u041c \u041a\u0443\u0440\u0441\u043e\u0432\u043e\u0439 \u043f\u0440\u043e\u0435\u043a\u0442/Project"
+		},
+		{
+			"name" : "your_project_name_BINARY_DIR",
+			"properties" : 
+			[
+				{
+					"name" : "HELPSTRING",
+					"value" : "Value Computed by CMake"
+				}
+			],
+			"type" : "STATIC",
+			"value" : "C:/Users/jeron/Documents/3.\u041e\u0431\u0443\u0447\u0435\u043d\u0438\u0435/3 \u041a\u0443\u0440\u0441/6 \u0421\u0435\u043c/\u0421\u041f\u043e\u0412\u041c \u041a\u0443\u0440\u0441\u043e\u0432\u043e\u0439 \u043f\u0440\u043e\u0435\u043a\u0442/Project/cmake-build-debug"
+		},
+		{
+			"name" : "your_project_name_IS_TOP_LEVEL",
+			"properties" : 
+			[
+				{
+					"name" : "HELPSTRING",
+					"value" : "Value Computed by CMake"
+				}
+			],
+			"type" : "STATIC",
+			"value" : "ON"
+		},
+		{
+			"name" : "your_project_name_SOURCE_DIR",
 			"properties" : 
 			[
 				{

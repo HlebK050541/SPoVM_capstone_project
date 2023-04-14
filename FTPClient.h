@@ -2,26 +2,29 @@
 // Created by HlebK on 3/28/2023.
 //
 
-#ifndef PROJECT_FTPCLIENT_H
-#define PROJECT_FTPCLIENT_H
+#ifndef FTPCLIENT_H
+#define FTPCLIENT_H
 
 #include <string>
 
 class FTPClient {
-public:
-    FTPClient();
-    ~FTPClient();
-    bool connect(const std::string& server, const std::string& username, const std::string& password);
-    bool uploadFile(const std::string& localFilePath, const std::string& remoteDirectoryPath);
-    bool downloadFile(const std::string& remoteFilePath, const std::string& localDirectoryPath);
-    bool createDirectory(const std::string& remoteDirectoryPath);
-    bool deleteFile(const std::string& remoteFilePath);
-    bool deleteDirectory(const std::string& remoteDirectoryPath);
-    bool renameFile(const std::string& remoteFilePath, const std::string& newFilename);
-    bool renameDirectory(const std::string& remoteDirectoryPath, const std::string& newDirectoryname);
-    bool listFiles(const std::string& remoteDirectoryPath);
 private:
-    // Private member variables and helper functions
+    std::string hostname;
+    int port;
+    std::string username;
+    std::string password;
+
+public:
+    FTPClient(std::string h, int p, std::string u, std::string pw);
+
+    bool connect();
+    bool disconnect();
+    bool login();
+    bool logout();
+    bool changeWorkingDirectory(std::string dir);
+    bool uploadFile(std::string localPath, std::string remotePath);
+    bool downloadFile(std::string remotePath, std::string localPath);
+    bool deleteFile(std::string remotePath);
 };
 
-#endif //PROJECT_FTPCLIENT_H
+#endif // FTPCLIENT_H

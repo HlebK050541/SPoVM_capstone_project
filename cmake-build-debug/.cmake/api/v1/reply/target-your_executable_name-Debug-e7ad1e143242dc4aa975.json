@@ -2,10 +2,10 @@
 	"artifacts" : 
 	[
 		{
-			"path" : "Project.exe"
+			"path" : "your_executable_name.exe"
 		},
 		{
-			"path" : "Project.pdb"
+			"path" : "your_executable_name.pdb"
 		}
 	],
 	"backtrace" : 1,
@@ -13,7 +13,8 @@
 	{
 		"commands" : 
 		[
-			"add_executable"
+			"add_executable",
+			"target_link_libraries"
 		],
 		"files" : 
 		[
@@ -29,6 +30,12 @@
 				"file" : 0,
 				"line" : 6,
 				"parent" : 0
+			},
+			{
+				"command" : 1,
+				"file" : 0,
+				"line" : 8,
+				"parent" : 0
 			}
 		]
 	},
@@ -38,7 +45,7 @@
 			"compileCommandFragments" : 
 			[
 				{
-					"fragment" : "-g"
+					"fragment" : " -Wall -pthread -g"
 				},
 				{
 					"fragment" : "-std=gnu++14"
@@ -55,25 +62,27 @@
 			},
 			"sourceIndexes" : 
 			[
-				0,
-				1,
-				3,
-				5
+				0
 			]
 		}
 	],
-	"id" : "Project::@6890427a1f51a3e7e1df",
+	"id" : "your_executable_name::@6890427a1f51a3e7e1df",
 	"link" : 
 	{
 		"commandFragments" : 
 		[
 			{
-				"fragment" : "-g",
+				"fragment" : "-Wall -pthread -g",
 				"role" : "flags"
 			},
 			{
 				"fragment" : "",
 				"role" : "flags"
+			},
+			{
+				"backtrace" : 2,
+				"fragment" : "-lpthread",
+				"role" : "libraries"
 			},
 			{
 				"fragment" : "-lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32",
@@ -82,8 +91,8 @@
 		],
 		"language" : "CXX"
 	},
-	"name" : "Project",
-	"nameOnDisk" : "Project.exe",
+	"name" : "your_executable_name",
+	"nameOnDisk" : "your_executable_name.exe",
 	"paths" : 
 	{
 		"build" : ".",
@@ -95,19 +104,7 @@
 			"name" : "Source Files",
 			"sourceIndexes" : 
 			[
-				0,
-				1,
-				3,
-				5
-			]
-		},
-		{
-			"name" : "Header Files",
-			"sourceIndexes" : 
-			[
-				2,
-				4,
-				6
+				0
 			]
 		}
 	],
@@ -118,39 +115,6 @@
 			"compileGroupIndex" : 0,
 			"path" : "main.cpp",
 			"sourceGroupIndex" : 0
-		},
-		{
-			"backtrace" : 1,
-			"compileGroupIndex" : 0,
-			"path" : "FTPClient.cpp",
-			"sourceGroupIndex" : 0
-		},
-		{
-			"backtrace" : 1,
-			"path" : "FTPClient.h",
-			"sourceGroupIndex" : 1
-		},
-		{
-			"backtrace" : 1,
-			"compileGroupIndex" : 0,
-			"path" : "FileTransfer.cpp",
-			"sourceGroupIndex" : 0
-		},
-		{
-			"backtrace" : 1,
-			"path" : "FileTransfer.h",
-			"sourceGroupIndex" : 1
-		},
-		{
-			"backtrace" : 1,
-			"compileGroupIndex" : 0,
-			"path" : "DirectoryTransfer.cpp",
-			"sourceGroupIndex" : 0
-		},
-		{
-			"backtrace" : 1,
-			"path" : "DirectoryTransfer.h",
-			"sourceGroupIndex" : 1
 		}
 	],
 	"type" : "EXECUTABLE"

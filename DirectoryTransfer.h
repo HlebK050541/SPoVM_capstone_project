@@ -2,18 +2,24 @@
 // Created by HlebK on 3/28/2023.
 //
 
-#ifndef PROJECT_DIRECTORYTRANSFER_H
-#define PROJECT_DIRECTORYTRANSFER_H
+#ifndef DIRECTORYTRANSFER_H
+#define DIRECTORYTRANSFER_H
+
+#include <string>
+#include "FTPClient.h"
+#include "ArchiveHandler.h"
 
 class DirectoryTransfer {
 public:
-    DirectoryTransfer();
-    ~DirectoryTransfer();
-    bool sendDirectory(const std::string& localDirectory, const std::string& remoteDirectory);
-    bool receiveDirectory(const std::string& remoteDirectory, const std::string& localDirectory);
+    DirectoryTransfer(std::string hostname, int port, std::string username, std::string password, std::string remoteDir, std::string localDir);
+    bool syncRemoteToLocal();
+    bool syncLocalToRemote();
 
 private:
-    // Any private variables or helper functions can be defined here
+    FTPClient ftpClient;
+    ArchiveHandler archiveHandler;
+    std::string remoteDir;
+    std::string localDir;
 };
 
-#endif //PROJECT_DIRECTORYTRANSFER_H
+#endif /* DIRECTORYTRANSFER_H */
