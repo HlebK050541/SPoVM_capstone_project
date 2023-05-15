@@ -1,0 +1,3 @@
+C:/Users/jeron/Documents/3.Обучение/3 Курс/6 Сем/СПоВМ Курсовой проект/Project/FTPClient/cmake-build-debug/CMakeFiles/FTPClient.dir
+C:/Users/jeron/Documents/3.Обучение/3 Курс/6 Сем/СПоВМ Курсовой проект/Project/FTPClient/cmake-build-debug/CMakeFiles/edit_cache.dir
+C:/Users/jeron/Documents/3.Обучение/3 Курс/6 Сем/СПоВМ Курсовой проект/Project/FTPClient/cmake-build-debug/CMakeFiles/rebuild_cache.dir
