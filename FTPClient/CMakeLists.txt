@@ -3,4 +3,4 @@ project(FTPClient C)
 
 set(CMAKE_C_STANDARD 11)
 
-add_executable(FTPClient main.c)
+add_executable(FTPClient ftp-client.c)

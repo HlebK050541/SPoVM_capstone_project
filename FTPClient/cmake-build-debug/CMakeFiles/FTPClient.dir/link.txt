@@ -1,0 +1,1 @@
+/usr/bin/cc -g "CMakeFiles/FTPClient.dir/ftp-client.c.o" -o FTPClient 
