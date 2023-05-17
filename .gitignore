@@ -1,2 +1,6 @@
 #directories
 archive/
+
+#files
+Documentation/*.docx
+Documentation/*.drawio
