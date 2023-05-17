@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <stdbool.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <sys/wait.h>
@@ -34,6 +35,13 @@ int establishConnection(const char* server, int port){
     }
     return sockfd;
 }
+
+// Function to close the TCP/IP connection with the server
+void closeConnection(int sockfd) {
+    close(sockfd);
+}
+
+
 // Function to authenticate with the server
 int authenticate(int sockfd, const char* username, const char* password){
     char buffer[256];
@@ -196,20 +204,7 @@ int packFiles(const char* archiveFile, const char* sourceDirectory) {
 
     return -1;
 }
-// Function to send data to the server
-int sendData(int sockfd, char buffer[1024], size_t read) {
-    ssize_t bytesSent = send(sockfd, buffer, read, 0);
 
-    if (bytesSent == -1) {
-        perror("Error sending data");
-        return -1;  // Return an error code
-    } else if (bytesSent != read) {
-        printf("Failed to send all data\n");
-        return -1;  // Return an error code
-    }
-
-    return 0;  // Return success code
-}
 // Function to unpack files using the default Linux archiver
 int unpackFiles(const char* archiveFile, const char* destinationDirectory) {
     // Construct the command to unpack the archive file to the destination directory
@@ -927,40 +922,235 @@ int handleTYPE(int sockfd, const char* type) {
     }
 }
 
+void displayMenu() {
+    printf("\n===== Menu =====\n");
+    printf("1. Authenticate\n");
+    printf("2. Send Command\n");
+    printf("3. Receive Response\n");
+    printf("4. Upload File\n");
+    printf("5. Download File\n");
+    printf("6. Create Directory\n");
+    printf("7. Pack Files\n");
+    printf("8. Unpack Files\n");
+    printf("0. Exit\n");
+    printf("Enter command number: ");
+}
 
 int main() {
-    const char *serverAddress = DEFAULT_SERVER;
-    int port = DEFAULT_PORT;
-    int controlSocket;
-    char command[BUFFER_SIZE];
-    char response[RESPONSE_SIZE];
-
-    // Create control socket and connect to the server
-    controlSocket = createSocket(serverAddress, port);
-    if (controlSocket == -1) {
-        fprintf(stderr, "Error creating socket or connecting to the server\n");
-        exit(1);
+    // Establish connection with default server and port
+    int sockfd = establishConnection(DEFAULT_SERVER, DEFAULT_PORT);
+    if (sockfd == -1) {
+        printf("Failed to establish connection. Exiting...\n");
+        return 1;
     }
 
-    // Receive the welcome message from the server
-    receiveResponse(controlSocket, response);
-    printf("Response: %s\n", response);
+    // Get user credentials for authentication
+    char username[256];
+    char password[256];
+    printf("Enter username: ");
+    scanf("%s", username);
+    printf("Enter password: ");
+    scanf("%s", password);
 
-    // Send commands and handle responses
-    handleUSER(controlSocket, "username");
-    handleTYPE(controlSocket, "binary");
-    handleSYST(controlSocket);
-    handleRETR(controlSocket, "filename.txt");
-    handleSTOR(controlSocket, "newfile.txt");
-    handleRMD(controlSocket, "directory");
-    handleRNFR(controlSocket, "oldfile.txt");
-    handleRNTO(controlSocket, "newfile.txt");
-    handleQUIT(controlSocket);
+    // Authenticate with the server
+    int authResult = authenticate(sockfd, username, password);
+    if (authResult != 0) {
+        printf("Authentication failed. Exiting...\n");
+        return 1;
+    }
 
-    // Close the control socket
-    close(controlSocket);
+    // Variables for user input
+    char command[256];
+    char string[256];
+
+    // Menu loop
+    while (true) {
+        displayMenu();
+
+        // Get user input
+        scanf("%s", command);
+
+        if (strcmp(command, "1") == 0) {
+            // Authenticate
+            printf("Enter username: ");
+            scanf("%s", username);
+            printf("Enter password: ");
+            scanf("%s", password);
+            authenticate(sockfd, username, password);
+        } else if (strcmp(command, "2") == 0) {
+            printf("Available commands:\n");
+            printf("1. ABOR\n");
+            printf("2. CWD\n");
+            printf("3. DELE\n");
+            printf("4. HELP\n");
+            printf("5. LIST\n");
+            printf("6. MKD\n");
+            printf("7. NLST\n");
+            printf("8. NOOP\n");
+            printf("9. PASS\n");
+            printf("10. PASV\n");
+            printf("11. PORT\n");
+            printf("12. PWD\n");
+            printf("13. QUIT\n");
+            printf("14. RETR\n");
+            printf("15. RMD\n");
+            printf("16. RNFR\n");
+            printf("17. RNTO\n");
+            printf("18. STOR\n");
+            printf("19. SYST\n");
+            printf("20. USER\n");
+            printf("21. TYPE\n");
+            printf("0. Back to main menu\n");
+
+            printf("Enter command number: ");
+            int commandNumber;
+            scanf("%d", &commandNumber);
+
+            switch (commandNumber) {
+                case 1:
+                    handleABOR(sockfd);
+                    break;
+                case 2:
+                    printf("Enter directory: ");
+                    scanf("%s", string);
+                    handleCWD(sockfd, string);
+                    break;
+                case 3:
+                    printf("Enter filename: ");
+                    scanf("%s", string);
+                    handleDELE(sockfd, string);
+                    break;
+                case 4:
+                    handleHELP(sockfd);
+                    break;
+                case 5:
+                    handleLIST(sockfd);
+                    break;
+                case 6:
+                    printf("Enter directory: ");
+                    scanf("%s", string);
+                    handleMKD(sockfd, string);
+                    break;
+                case 7:
+                    printf("Enter directory: ");
+                    scanf("%s", string);
+                    handleNLST(sockfd, string);
+                    break;
+                case 8:
+                    handleNOOP(sockfd);
+                    break;
+                case 9:
+                    printf("Enter password: ");
+                    scanf("%s", string);
+                    handlePASS(sockfd, string);
+                    break;
+                case 10:
+                    handlePASV(sockfd, ipAddress, &port);
+                    break;
+                case 11:
+                    printf("Enter IP address: ");
+                    scanf("%s", ipAddress);
+                    printf("Enter port: ");
+                    scanf("%d", &port);
+                    handlePORT(sockfd, ipAddress, port);
+                    break;
+                case 12:
+                    handlePWD(sockfd);
+                    break;
+                case 13:
+                    handleQUIT(sockfd);
+                    // Close the connection
+                    closeConnection(sockfd);
+                    return 0;
+                case 14:
+                    printf("Enter filename: ");
+                    scanf("%s", string);
+                    handleRETR(sockfd, string);
+                    break;
+                case 15:
+                    printf("Enter directory: ");
+                    scanf("%s", string);
+                    handleRMD(sockfd, string);
+                    break;
+                case 16:
+                    printf("Enter old name: ");
+                    scanf("%s", string);
+                    handleRNFR(sockfd, string);
+                    break;
+                case 17:
+                    printf("Enter new name: ");
+                    scanf("%s", string);
+                    handleRNTO(sockfd, string);
+                    break;
+                case 18:
+                    printf("Enter local file: ");
+                    scanf("%s", localFile);
+                    printf("Enter remote file: ");
+                    scanf("%s", remoteFile);
+                    handleSTOR(sockfd, localFile, remoteFile);
+                    break;
+                case 19:
+                    handleSYST(sockfd);
+                    break;
+                case 20:
+                    handleUSER(sockfd);
+                    break;
+                case 21:
+                    handleTYPE(sockfd);
+                    break;
+                case 0:
+                    displayMenu();
+                default:
+                    printf("Invalid command.\n");
+                    displayMenu();
+            }
+        } else if (strcmp(command, "3") == 0) {
+            // Receive Response
+            receiveResponse(sockfd);
+        } else if (strcmp(command, "4") == 0) {
+            // Upload File
+            printf("Enter local file path: ");
+            scanf("%s", string);
+            printf("Enter remote file path: ");
+            scanf("%s", command);
+            uploadFile(sockfd, string, command);
+        } else if (strcmp(command, "5") == 0) {
+            // Download File
+            printf("Enter remote file path: ");
+            scanf("%s", string);
+            printf("Enter local file path: ");
+            scanf("%s", command);
+            downloadFile(sockfd, string, command);
+        } else if (strcmp(command, "6") == 0) {
+            // Create Directory
+            printf("Enter directory name: ");
+            scanf("%s", command);
+            createDirectory(sockfd, command);
+        } else if (strcmp(command, "7") == 0) {
+            // Pack Files
+            printf("Enter archive file path: ");
+            scanf("%s", string);
+            printf("Enter source directory: ");
+            scanf("%s", command);
+            packFiles(string, command);
+        } else if (strcmp(command, "8") == 0) {
+            // Unpack Files
+            printf("Enter archive file path: ");
+            scanf("%s", string);
+            printf("Enter destination directory: ");
+            scanf("%s", command);
+            unpackFiles(string, command);
+        } else if (strcmp(command, "0") == 0) {
+            // Exit the program
+            break;
+        } else {
+            printf("Invalid command. Please try again.\n");
+        }
+    }
+
+    // Close the connection
+    closeConnection(sockfd);
 
     return 0;
-
 }
 
