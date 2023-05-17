@@ -49,8 +49,8 @@ cmake_ninja_workdir = C$:/Users/jeron/Documents/3.Обучение/3$ Курс/6$ Сем/СПоВМ$
 
 build cmake_object_order_depends_target_FTPClient: phony || CMakeFiles/FTPClient.dir
 
-build CMakeFiles/FTPClient.dir/main.c.obj: C_COMPILER__FTPClient_Debug C$:/Users/jeron/Documents/3.Обучение/3$ Курс/6$ Сем/СПоВМ$ Курсовой$ проект/Project/FTPClient/main.c || cmake_object_order_depends_target_FTPClient
-  DEP_FILE = CMakeFiles\FTPClient.dir\main.c.obj.d
+build CMakeFiles/FTPClient.dir/ftp-client.c.obj: C_COMPILER__FTPClient_Debug C$:/Users/jeron/Documents/3.Обучение/3$ Курс/6$ Сем/СПоВМ$ Курсовой$ проект/Project/FTPClient/ftp-client.c || cmake_object_order_depends_target_FTPClient
+  DEP_FILE = CMakeFiles\FTPClient.dir\ftp-client.c.obj.d
   FLAGS = -g -std=gnu11
   OBJECT_DIR = CMakeFiles\FTPClient.dir
   OBJECT_FILE_DIR = CMakeFiles\FTPClient.dir
@@ -65,7 +65,7 @@ build CMakeFiles/FTPClient.dir/main.c.obj: C_COMPILER__FTPClient_Debug C$:/Users
 #############################################
 # Link the executable FTPClient.exe
 
-build FTPClient.exe: C_EXECUTABLE_LINKER__FTPClient_Debug CMakeFiles/FTPClient.dir/main.c.obj
+build FTPClient.exe: C_EXECUTABLE_LINKER__FTPClient_Debug CMakeFiles/FTPClient.dir/ftp-client.c.obj
   FLAGS = -g
   LINK_LIBRARIES = -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32
   OBJECT_DIR = CMakeFiles\FTPClient.dir
