@@ -4,6 +4,7 @@
 // FTP-client working on the TCP/IP protocol
 //
 
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -14,8 +15,9 @@
 #include <sys/wait.h>
 
 // Constants
-#define DEFAULT_SERVER "ftp.example.com"
+#define DEFAULT_SERVER "192.168.100.10"
 #define DEFAULT_PORT 21
+#define BUFFER_SIZE 512
 #define DEFAULT_DIRECTORY "/home/ftp"
 
 // Function to establish a TCP/IP connection with the server
@@ -42,23 +44,6 @@ void closeConnection(int sockfd) {
 }
 
 
-// Function to authenticate with the server
-int authenticate(int sockfd, const char* username, const char* password){
-    char buffer[256];
-    sprintf(buffer, "USER %s\r\n", username);
-    send(sockfd, buffer, strlen(buffer), 0);
-
-    recv(sockfd, buffer, sizeof(buffer), 0);
-    if(strncmp(buffer, "331", 3) == 0){
-        sprintf(buffer, "PASS %s\r\n", password);
-        send(sockfd, buffer, strlen(buffer), 0);
-        recv(sockfd, buffer, sizeof(buffer), 0);
-        if(strncmp(buffer, "230", 3) == 0){
-            return 0;  // Successful authentication
-        }
-    }
-    return -1;  // Error
-}
 // Function to send commands to the server
 int sendCommand(int sockfd, const char* command, const char* string) {
     // Prepare the command to be sent to the server
@@ -77,24 +62,61 @@ int sendCommand(int sockfd, const char* command, const char* string) {
     }
 }
 // Function to receive responses from the server
-int receiveResponse(int sockfd) {
-    char response[1024];  // Buffer to store the response
-
-    // Receive the response from the server
-    ssize_t bytesRead = read(sockfd, response, sizeof(response) - 1);
-
-    // Check if the response was successfully received
+int receiveResponse(int sockfd, char string[256], unsigned long i) {
+    char buffer[256];
+    ssize_t bytesRead = read(sockfd, buffer, sizeof(buffer));
     if (bytesRead < 0) {
         perror("Error receiving response");
-        return -1;  // Return an error code
     } else if (bytesRead == 0) {
-        printf("Server closed the connection\n");
-        return -1;  // Return an error code
+        printf("Connection closed by the server.\n");
     } else {
-        response[bytesRead] = '\0';  // Null-terminate the response
-        printf("Response from server: %s\n", response);
-        return 0;  // Return success code
+        buffer[bytesRead] = '\0';
+        if (strncmp(buffer, string, strlen(string)) == 0) {
+            printf("%lu: %s\n", i, buffer);
+        } else {
+            printf("%lu: %s\n", i, buffer);
+            printf("%s\n", string);
+            return -1;
+        }
+
+        }
+    return 0;
+}
+
+// Function to authenticate with the server
+int authenticate(int sockfd, const char* username, const char* password) {
+    char buffer[BUFFER_SIZE];
+    ssize_t bytes_received;
+    // Send the username and password to the server
+    sendCommand(sockfd, "USER", username);
+    // Receive the response from the server
+    receiveResponse(sockfd, buffer, 0);
+    // Send the password to the server
+    sendCommand(sockfd, "PASS", password);
+    // Receive the response from the server
+    receiveResponse(sockfd, buffer, 1);
+    return 0;
+}
+
+// Function to send data to the server
+int sendData(int sockfd, const void* data, size_t size) {
+    ssize_t bytesSent = write(sockfd, data, size);
+    if (bytesSent < 0) {
+        perror("Error sending data");
+    } else if (bytesSent != size) {
+        printf("Error sending data\n");
     }
+    return 0;
+}
+
+int receiveData(int sockfd, void* data, size_t size) {
+    ssize_t bytesRead = read(sockfd, data, size);
+    if (bytesRead < 0) {
+        perror("Error receiving data");
+    } else if (bytesRead != size) {
+        printf("Error receiving data\n");
+    }
+    return 0;
 }
 // Function to handle file upload
 int uploadFile(int sockfd, const char* localFile, const char* remoteFile) {
@@ -175,7 +197,7 @@ int downloadFile(int sockfd, const char* remoteFile, const char* localFile) {
 int createDirectory(int sockfd, const char* directory) {
     // Send the MKD command to the server
     if (sendCommand(sockfd, "MKD %s\r\n", directory) == 0) {
-        int responseCode = receiveResponse(sockfd);
+        int responseCode = receiveResponse(sockfd, NULL, 0);
         if (responseCode == 257) {
             printf("Directory '%s' created successfully.\n", directory);
             return 0;
@@ -224,6 +246,72 @@ int unpackFiles(const char* archiveFile, const char* destinationDirectory) {
 
     return 0;  // Return success code
 }
+
+
+bool startsWith(const char* string, const char* substring) {
+    return strncmp(string, substring, strlen(substring)) == 0;
+}
+
+// Function to parse the PASV response and extract the IP address and port
+int parsePASVResponse(const char* response, char* ipAddress, int* port) {
+    // Find the opening parenthesis
+    const char* openingParenthesis = strchr(response, '(');
+    if (openingParenthesis == NULL) {
+        return -1; // Return an error code
+    }
+    // Find the closing parenthesis
+    const char* closingParenthesis = strchr(response, ')');
+    if (closingParenthesis == NULL) {
+        return -1; // Return an error code
+    }
+    // Extract the numbers between the parentheses
+    char numbers[256];
+    size_t numbersLength = closingParenthesis - openingParenthesis - 1;
+    strncpy(numbers, openingParenthesis + 1, numbersLength);
+    numbers[numbersLength] = '\0';
+    // Split the numbers into IP address and port components
+    char* token = strtok(numbers, ",");
+    int ipComponents[4];
+    for (int i = 0; i < 4; i++) {
+        if (token == NULL) {
+            return -1; // Return an error code
+        }
+        ipComponents[i] = atoi(token);
+        token = strtok(NULL, ",");
+    }
+    int portComponents[2];
+    for (int i = 0; i < 2; i++) {
+        if (token == NULL) {
+            return -1; // Return an error code
+        }
+        portComponents[i] = atoi(token);
+        token = strtok(NULL, ",");
+    }
+    // Construct the IP address string
+    snprintf(ipAddress, INET_ADDRSTRLEN, "%d.%d.%d.%d", ipComponents[0], ipComponents[1], ipComponents[2], ipComponents[3]);
+    // Calculate the port number
+    *port = (portComponents[0] << 8) + portComponents[1];
+    return 0; // Return success code
+}
+
+void extractCurrentDirectory(char* response, char* currentDirectory, int size) {
+    int i = 0;
+    while (response[i] != '\0') {
+        currentDirectory[i] = response[i];
+        i++;
+        if (response[i] == '\0') {
+            break;
+        } else {
+            currentDirectory[i] = '\0';
+            i++;
+        }
+    }
+}
+
+bool isPositiveCompletion(const char* response) {
+    return strncmp(response, "230", 3) == 0;
+}
+
 // Function to handle the ABOR command
 int handleABOR(int sockfd) {
     // Send the ABOR command to the server
@@ -513,47 +601,7 @@ int handlePASV(int sockfd, char* ipAddress, int* port) {
         return -1; // Return an error code
     }
 }
-// Function to parse the PASV response and extract the IP address and port
-int parsePASVResponse(const char* response, char* ipAddress, int* port) {
-    // Find the opening parenthesis
-    const char* openingParenthesis = strchr(response, '(');
-    if (openingParenthesis == NULL) {
-        return -1; // Return an error code
-    }
-    // Find the closing parenthesis
-    const char* closingParenthesis = strchr(response, ')');
-    if (closingParenthesis == NULL) {
-        return -1; // Return an error code
-    }
-    // Extract the numbers between the parentheses
-    char numbers[256];
-    size_t numbersLength = closingParenthesis - openingParenthesis - 1;
-    strncpy(numbers, openingParenthesis + 1, numbersLength);
-    numbers[numbersLength] = '\0';
-    // Split the numbers into IP address and port components
-    char* token = strtok(numbers, ",");
-    int ipComponents[4];
-    for (int i = 0; i < 4; i++) {
-        if (token == NULL) {
-            return -1; // Return an error code
-        }
-        ipComponents[i] = atoi(token);
-        token = strtok(NULL, ",");
-    }
-    int portComponents[2];
-    for (int i = 0; i < 2; i++) {
-        if (token == NULL) {
-            return -1; // Return an error code
-        }
-        portComponents[i] = atoi(token);
-        token = strtok(NULL, ",");
-    }
-    // Construct the IP address string
-    snprintf(ipAddress, INET_ADDRSTRLEN, "%d.%d.%d.%d", ipComponents[0], ipComponents[1], ipComponents[2], ipComponents[3]);
-    // Calculate the port number
-    *port = (portComponents[0] << 8) + portComponents[1];
-    return 0; // Return success code
-}
+
 // Function to handle the PORT command
 int handlePORT(int sockfd, const char* ipAddress, int port) {
     // Format the IP address and port into the PORT command
@@ -586,35 +634,21 @@ int handlePORT(int sockfd, const char* ipAddress, int port) {
         return -1; // Return an error code
     }
 }
+
+
 // Function to handle the PWD command
 int handlePWD(int sockfd) {
     // Send the PWD command to the server
     if (sendCommand(sockfd, "PWD\r\n", NULL) == 0) {
         // PWD command sent successfully
         printf("PWD command sent successfully.\n");
-        // Wait for the response from the server
-        char response[1024];
-        if (receiveResponse(sockfd, response, sizeof(response)) == 0) {
-            // Check the response code
-            if (strncmp(response, "257", 3) == 0) {
-                // Extract the current directory from the response
-                char currentDirectory[1024];
-                extractCurrentDirectory(response, currentDirectory, sizeof(currentDirectory));
-                printf("Current directory: %s\n", currentDirectory);
-                return 0;  // Return success code
-            } else {
-                printf("PWD command failed. Server response: %s\n", response);
-                return -1; // Return an error code
-            }
-        } else {
-            printf("Failed to receive response from the server.\n");
-            return -1; // Return an error code
-        }
     } else {
         printf("Failed to send the PWD command.\n");
         return -1; // Return an error code
     }
+    return 0;
 }
+
 // Function to handle the QUIT command
 int handleQUIT(int sockfd) {
     // Send the QUIT command to the server
@@ -860,6 +894,7 @@ int handleSYST(int sockfd) {
         return -1; // Return an error code
     }
 }
+
 // Function to handle the USER command
 int handleUSER(int sockfd, const char* username) {
     // Create the USER command string
@@ -962,6 +997,10 @@ int main() {
     // Variables for user input
     char command[256];
     char string[256];
+    double port;
+    char ipAddress[256];
+    char remoteFile[256];
+    char localFile[256];
 
     // Menu loop
     while (true) {
@@ -1093,10 +1132,10 @@ int main() {
                     handleSYST(sockfd);
                     break;
                 case 20:
-                    handleUSER(sockfd);
+                    handleUSER(sockfd, remoteFile);
                     break;
                 case 21:
-                    handleTYPE(sockfd);
+                    handleTYPE(sockfd, remoteFile);
                     break;
                 case 0:
                     displayMenu();
@@ -1106,7 +1145,7 @@ int main() {
             }
         } else if (strcmp(command, "3") == 0) {
             // Receive Response
-            receiveResponse(sockfd);
+            receiveResponse(sockfd, NULL, 0);
         } else if (strcmp(command, "4") == 0) {
             // Upload File
             printf("Enter local file path: ");
