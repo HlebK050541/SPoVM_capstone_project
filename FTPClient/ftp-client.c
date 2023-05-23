@@ -2,6 +2,9 @@
 // Created by Hleb Kokhanovsky
 // Capstone Project
 // FTP-client working on the TCP/IP protocol
+// The client is a simple program that sends commands to the server and receives responses from the server.
+// The client supports working with the archived files
+// The client supports uploading and downloading files
 //
 
 
@@ -18,7 +21,6 @@
 #define DEFAULT_SERVER "192.168.100.10"
 #define DEFAULT_PORT 21
 #define BUFFER_SIZE 512
-#define DEFAULT_DIRECTORY "/home/ftp"
 
 // Function to establish a TCP/IP connection with the server
 int establishConnection(const char* server, int port){
@@ -118,6 +120,8 @@ int receiveData(int sockfd, void* data, size_t size) {
     }
     return 0;
 }
+
+
 // Function to handle file upload
 int uploadFile(int sockfd, const char* localFile, const char* remoteFile) {
     // Open the local file for reading
@@ -157,59 +161,8 @@ int uploadFile(int sockfd, const char* localFile, const char* remoteFile) {
         return -1; // Return an error code
     }
 }
-// Function to handle file download
-int downloadFile(int sockfd, const char* remoteFile, const char* localFile) {
-    // Send the RETR command to the server
-    char command[256];
-    int commandSize = snprintf(command, sizeof(command), "RETR %s\r\n", remoteFile);
-    if (commandSize < 0 || commandSize >= sizeof(command)) {
-        printf("Error constructing RETR command.\n");
-        return -1; // Return an error code
-    }
 
-    if (sendCommand(sockfd, command, NULL) == 0) {
-        // File download command sent successfully
-        // Handle the file download process
-        FILE* file = fopen(localFile, "wb");
-        if (file == NULL) {
-            printf("Failed to open the local file for writing.\n");
-            return -1; // Return an error code
-        }
-        char buffer[1024];
-        ssize_t bytesReceived;
-        while ((bytesReceived = receiveData(sockfd, buffer, sizeof(buffer))) > 0) {
-            // Write received data to the local file
-            if (fwrite(buffer, 1, bytesReceived, file) != bytesReceived) {
-                printf("Failed to write data to the local file.\n");
-                fclose(file);
-                return -1; // Return an error code
-            }
-        }
-        // Close the local file
-        fclose(file);
-        return 0; // Return success code
-    } else {
-        printf("Failed to send the RETR command.\n");
-        return -1; // Return an error code
-    }
-}
-// Function to create a directory on the server
-int createDirectory(int sockfd, const char* directory) {
-    // Send the MKD command to the server
-    if (sendCommand(sockfd, "MKD %s\r\n", directory) == 0) {
-        int responseCode = receiveResponse(sockfd, NULL, 0);
-        if (responseCode == 257) {
-            printf("Directory '%s' created successfully.\n", directory);
-            return 0;
-        } else {
-            printf("Failed to create directory '%s'.\n", directory);
-        }
-    } else {
-        printf("Failed to send the MKD command.\n");
-    }
 
-    return -1;
-}
 // Function to pack files using the default Linux archiver
 int packFiles(const char* archiveFile, const char* sourceDirectory) {
     char command[256];
@@ -245,11 +198,6 @@ int unpackFiles(const char* archiveFile, const char* destinationDirectory) {
     }
 
     return 0;  // Return success code
-}
-
-
-bool startsWith(const char* string, const char* substring) {
-    return strncmp(string, substring, strlen(substring)) == 0;
 }
 
 // Function to parse the PASV response and extract the IP address and port
@@ -308,14 +256,25 @@ void extractCurrentDirectory(char* response, char* currentDirectory, int size) {
     }
 }
 
+// Function to check if a string starts with a substring
+bool startsWith(const char* string, const char* substring) {
+    return strncmp(string, substring, strlen(substring)) == 0;
+}
+
+// Function to check if a string is a positive completion
 bool isPositiveCompletion(const char* response) {
     return strncmp(response, "230", 3) == 0;
+}
+
+// Function to check if a string is an archive
+bool isArchiveFile(const char* response) {
+    return strncmp(response, "213", 3) == 0;
 }
 
 // Function to handle the ABOR command
 int handleABOR(int sockfd) {
     // Send the ABOR command to the server
-    if (sendCommand(sockfd, "ABOR\r\n", NULL) == 0) {
+    if (sendCommand(sockfd, "ABOR", NULL) == 0) {
         // ABOR command sent successfully
         printf("ABOR command sent successfully.\n");
 
@@ -339,11 +298,13 @@ int handleABOR(int sockfd) {
         return -1; // Return an error code
     }
 }
+
+
 // Function to handle the CWD command
 int handleCWD(int sockfd, const char* directory) {
     // Send the CWD command to the server
     char command[256];
-    snprintf(command, sizeof(command), "CWD %s\r\n", directory);
+    snprintf(command, sizeof(command), "CWD %s", directory);
     if (sendCommand(sockfd, command, NULL) == 0) {
         // CWD command sent successfully
         printf("CWD command sent successfully.\n");
@@ -368,11 +329,13 @@ int handleCWD(int sockfd, const char* directory) {
         return -1; // Return an error code
     }
 }
+
+
 // Function to handle the DELE command
 int handleDELE(int sockfd, const char* filename) {
     // Send the DELE command to the server
     char command[256];
-    snprintf(command, sizeof(command), "DELE %s\r\n", filename);
+    snprintf(command, sizeof(command), "DELE %s", filename);
     if (sendCommand(sockfd, command, NULL) == 0) {
         // DELE command sent successfully
         printf("DELE command sent successfully.\n");
@@ -397,6 +360,8 @@ int handleDELE(int sockfd, const char* filename) {
         return -1; // Return an error code
     }
 }
+
+
 // Function to handle the HELP command
 int handleHELP(int sockfd) {
     // Send the HELP command to the server
@@ -419,6 +384,7 @@ int handleHELP(int sockfd) {
         return -1; // Return an error code
     }
 }
+
 // Function to handle the LIST command
 int handleLIST(int sockfd) {
     // Send the LIST command to the server
@@ -441,6 +407,8 @@ int handleLIST(int sockfd) {
         return -1; // Return an error code
     }
 }
+
+
 // Function to handle the MKD command
 int handleMKD(int sockfd, const char* directory) {
     // Prepare the MKD command
@@ -470,6 +438,7 @@ int handleMKD(int sockfd, const char* directory) {
         return -1; // Return an error code
     }
 }
+
 // Function to handle the NLST command
 int handleNLST(int sockfd, const char* directory) {
     // Prepare the NLST command
@@ -513,6 +482,8 @@ int handleNLST(int sockfd, const char* directory) {
         return -1; // Return an error code
     }
 }
+
+
 // Function to handle the NOOP command
 int handleNOOP(int sockfd) {
     // Send the NOOP command to the server
@@ -540,6 +511,8 @@ int handleNOOP(int sockfd) {
         return -1; // Return an error code
     }
 }
+
+
 // Function to handle the PASS command
 int handlePASS(int sockfd, const char* password) {
     // Send the PASS command to the server
@@ -569,6 +542,8 @@ int handlePASS(int sockfd, const char* password) {
         return -1; // Return an error code
     }
 }
+
+
 // Function to handle the PASV command
 int handlePASV(int sockfd, char* ipAddress, int* port) {
     // Send the PASV command to the server
@@ -642,12 +617,31 @@ int handlePWD(int sockfd) {
     if (sendCommand(sockfd, "PWD\r\n", NULL) == 0) {
         // PWD command sent successfully
         printf("PWD command sent successfully.\n");
+
+        // Wait for the response from the server
+        char response[1024];
+        if (receiveResponse(sockfd, response, sizeof(response)) == 0) {
+            // Check the response code
+            if (strncmp(response, "257", 3) == 0) {
+                // Extract the current directory from the response
+                char currentDirectory[256];
+                extractCurrentDirectory(response, currentDirectory, sizeof(currentDirectory));
+                printf("Current directory: %s\n", currentDirectory);
+                return 0;  // Return success code
+            } else {
+                printf("PWD command failed. Server response: %s\n", response);
+                return -1; // Return an error code
+            }
+        } else {
+            printf("Failed to receive response from the server.\n");
+            return -1; // Return an error code
+        }
     } else {
         printf("Failed to send the PWD command.\n");
         return -1; // Return an error code
     }
-    return 0;
 }
+
 
 // Function to handle the QUIT command
 int handleQUIT(int sockfd) {
@@ -662,6 +656,10 @@ int handleQUIT(int sockfd) {
             // Check the response code
             if (strncmp(response, "221", 3) == 0) {
                 printf("Server closed the connection. Goodbye!\n");
+
+                // Close the connection
+                closeConnection(sockfd);
+
                 return 0;  // Return success code
             } else {
                 printf("QUIT command failed. Server response: %s\n", response);
@@ -676,6 +674,8 @@ int handleQUIT(int sockfd) {
         return -1; // Return an error code
     }
 }
+
+
 // Function to handle the RETR command
 int handleRETR(int sockfd, const char* filename) {
     // Send the RETR command to the server
@@ -684,6 +684,7 @@ int handleRETR(int sockfd, const char* filename) {
     if (sendCommand(sockfd, command, NULL) == 0) {
         // RETR command sent successfully
         printf("RETR command sent successfully.\n");
+
         // Wait for the response from the server
         char response[1024];
         if (receiveResponse(sockfd, response, sizeof(response)) == 0) {
@@ -704,6 +705,26 @@ int handleRETR(int sockfd, const char* filename) {
                     }
                     fclose(file);
                     printf("File '%s' downloaded successfully.\n", filename);
+
+                    // Check if the downloaded file is an archive
+                    if (isArchiveFile(filename)) {
+                        // Unpack the downloaded archive file
+                        if (unpackFiles(filename, "destination_directory") == 0) {
+                            printf("File '%s' unpacked successfully.\n", filename);
+                        } else {
+                            printf("Failed to unpack file '%s'.\n", filename);
+                            return -1; // Return an error code
+                        }
+
+                        // Remove the downloaded archive file
+                        if (remove(filename) == 0) {
+                            printf("Archive file '%s' removed.\n", filename);
+                        } else {
+                            printf("Failed to remove archive file '%s'.\n", filename);
+                            return -1; // Return an error code
+                        }
+                    }
+
                     return 0; // Return success code
                 } else {
                     printf("Failed to open the local file for writing.\n");
@@ -722,6 +743,8 @@ int handleRETR(int sockfd, const char* filename) {
         return -1; // Return an error code
     }
 }
+
+
 // Function to handle the RMD command
 int handleRMD(int sockfd, const char* directory) {
     // Send the RMD command to the server
@@ -751,6 +774,7 @@ int handleRMD(int sockfd, const char* directory) {
         return -1; // Return an error code
     }
 }
+
 // Function to handle the RNFR command
 int handleRNFR(int sockfd, const char* oldName) {
     // Send the RNFR command to the server
@@ -780,6 +804,7 @@ int handleRNFR(int sockfd, const char* oldName) {
         return -1; // Return an error code
     }
 }
+
 // Function to handle the RNTO command
 int handleRNTO(int sockfd, const char* newName) {
     // Send the RNTO command to the server
@@ -809,20 +834,40 @@ int handleRNTO(int sockfd, const char* newName) {
         return -1; // Return an error code
     }
 }
+
+
 // Function to handle the STOR command
-int handleSTOR(int sockfd, const char* localFile, const char* remoteFile) {
+int handleSTOR(int sockfd, const char* localFile, const char* remoteFile, int shouldArchive) {
+    // Check if the file needs to be archived
+    if (shouldArchive) {
+        // Generate a temporary archive file name
+        char archiveFile[256];
+        snprintf(archiveFile, sizeof(archiveFile), "%s.tar.gz", localFile);
+
+        // Pack the local file into an archive
+        if (packFiles(archiveFile, localFile) != 0) {
+            printf("Failed to pack the local file into an archive.\n");
+            return -1; // Return an error code
+        }
+
+        // Update the local file name to the archive file
+        localFile = archiveFile;
+    }
+
     // Open the local file for reading
     FILE* file = fopen(localFile, "rb");
     if (!file) {
         printf("Failed to open the local file '%s'.\n", localFile);
         return -1; // Return an error code
     }
+
     // Send the STOR command to the server
     char command[256];
     snprintf(command, sizeof(command), "STOR %s\r\n", remoteFile);
     if (sendCommand(sockfd, command, NULL) == 0) {
         // STOR command sent successfully
         printf("STOR command sent successfully.\n");
+
         // Wait for the response from the server
         char response[1024];
         if (receiveResponse(sockfd, response, sizeof(response)) == 0) {
@@ -830,6 +875,7 @@ int handleSTOR(int sockfd, const char* localFile, const char* remoteFile) {
             if (strncmp(response, "150", 3) == 0) {
                 // Server is ready to receive the file
                 printf("Server is ready to receive the file.\n");
+
                 // Read and send the contents of the local file to the server
                 char buffer[1024];
                 size_t bytesRead;
@@ -840,8 +886,10 @@ int handleSTOR(int sockfd, const char* localFile, const char* remoteFile) {
                         return -1; // Return an error code
                     }
                 }
+
                 // Close the local file
                 fclose(file);
+
                 // Wait for the response from the server
                 if (receiveResponse(sockfd, response, sizeof(response)) == 0) {
                     // Check the final response code
@@ -872,8 +920,9 @@ int handleSTOR(int sockfd, const char* localFile, const char* remoteFile) {
         return -1; // Return an error code
     }
 }
+
 // Function to handle the SYST command
-int handleSYST(int sockfd) {
+int handleSYST(int sockfd, char* systemType, size_t systemTypeSize) {
     // Send the SYST command to the server
     if (sendCommand(sockfd, "SYST\r\n", NULL) == 0) {
         // SYST command sent successfully
@@ -882,8 +931,8 @@ int handleSYST(int sockfd) {
         // Wait for the response from the server
         char response[1024];
         if (receiveResponse(sockfd, response, sizeof(response)) == 0) {
-            // Print the server's system information
-            printf("Server system information: %s\n", response);
+            // Copy the system type to the output parameter
+            snprintf(systemType, systemTypeSize, "%s", response);
             return 0; // Return success code
         } else {
             printf("Failed to receive response from the server.\n");
@@ -895,6 +944,8 @@ int handleSYST(int sockfd) {
     }
 }
 
+
+// Function to handle the USER command
 // Function to handle the USER command
 int handleUSER(int sockfd, const char* username) {
     // Create the USER command string
@@ -927,24 +978,27 @@ int handleUSER(int sockfd, const char* username) {
     }
 }
 
+
 // Function to handle the TYPE command
 int handleTYPE(int sockfd, const char* type) {
     // Create the TYPE command string
     char command[256];
     snprintf(command, sizeof(command), "TYPE %s\r\n", type);
+
     // Send the TYPE command to the server
     if (sendCommand(sockfd, command, NULL) == 0) {
         // TYPE command sent successfully
         printf("TYPE command sent successfully.\n");
+
         // Wait for the response from the server
         char response[1024];
         if (receiveResponse(sockfd, response, sizeof(response)) == 0) {
             // Check the response code
             if (isPositiveCompletion(response)) {
-                printf("Type set successfully.\n");
+                printf("Transfer mode set successfully.\n");
                 return 0; // Return success code
             } else {
-                printf("Failed to set the type.\n");
+                printf("Failed to set the transfer mode.\n");
                 return -1; // Return an error code
             }
         } else {
@@ -957,16 +1011,11 @@ int handleTYPE(int sockfd, const char* type) {
     }
 }
 
+
 void displayMenu() {
     printf("\n===== Menu =====\n");
     printf("1. Authenticate\n");
     printf("2. Send Command\n");
-    printf("3. Receive Response\n");
-    printf("4. Upload File\n");
-    printf("5. Download File\n");
-    printf("6. Create Directory\n");
-    printf("7. Pack Files\n");
-    printf("8. Unpack Files\n");
     printf("0. Exit\n");
     printf("Enter command number: ");
 }
@@ -978,6 +1027,15 @@ int main() {
         printf("Failed to establish connection. Exiting...\n");
         return 1;
     }
+
+    char command[256];
+    char string[256];
+    char localFile[256];
+    char remoteFile[256];
+    char ipAddress[256];
+    char systemType[256];
+    int port;
+    bool shouldArchive;
 
     // Get user credentials for authentication
     char username[256];
@@ -991,20 +1049,14 @@ int main() {
     int authResult = authenticate(sockfd, username, password);
     if (authResult != 0) {
         printf("Authentication failed. Exiting...\n");
+        closeConnection(sockfd);
         return 1;
     }
-
-    // Variables for user input
-    char command[256];
-    char string[256];
-    double port;
-    char ipAddress[256];
-    char remoteFile[256];
-    char localFile[256];
 
     // Menu loop
     while (true) {
         displayMenu();
+
 
         // Get user input
         scanf("%s", command);
@@ -1017,168 +1069,147 @@ int main() {
             scanf("%s", password);
             authenticate(sockfd, username, password);
         } else if (strcmp(command, "2") == 0) {
-            printf("Available commands:\n");
-            printf("1. ABOR\n");
-            printf("2. CWD\n");
-            printf("3. DELE\n");
-            printf("4. HELP\n");
-            printf("5. LIST\n");
-            printf("6. MKD\n");
-            printf("7. NLST\n");
-            printf("8. NOOP\n");
-            printf("9. PASS\n");
-            printf("10. PASV\n");
-            printf("11. PORT\n");
-            printf("12. PWD\n");
-            printf("13. QUIT\n");
-            printf("14. RETR\n");
-            printf("15. RMD\n");
-            printf("16. RNFR\n");
-            printf("17. RNTO\n");
-            printf("18. STOR\n");
-            printf("19. SYST\n");
-            printf("20. USER\n");
-            printf("21. TYPE\n");
-            printf("0. Back to main menu\n");
+            // Command handling menu
+            bool exitCommandLoop = false;
+            while (!exitCommandLoop) {
+                printf("Available commands:\n");
+                printf("1. ABOR\n");
+                printf("2. CWD\n");
+                printf("3. DELE\n");
+                printf("4. HELP\n");
+                printf("5. LIST\n");
+                printf("6. MKD\n");
+                printf("7. NLST\n");
+                printf("8. NOOP\n");
+                printf("9. PASS\n");
+                printf("10. PASV\n");
+                printf("11. PORT\n");
+                printf("12. PWD\n");
+                printf("13. QUIT\n");
+                printf("14. RETR\n");
+                printf("15. RMD\n");
+                printf("16. RNFR\n");
+                printf("17. RNTO\n");
+                printf("18. STOR\n");
+                printf("19. SYST\n");
+                printf("20. USER\n");
+                printf("21. TYPE\n");
+                printf("0. Back to main menu\n");
 
-            printf("Enter command number: ");
-            int commandNumber;
-            scanf("%d", &commandNumber);
+                printf("Enter command number: ");
+                int commandNumber;
+                scanf("%d", &commandNumber);
 
-            switch (commandNumber) {
-                case 1:
-                    handleABOR(sockfd);
-                    break;
-                case 2:
-                    printf("Enter directory: ");
-                    scanf("%s", string);
-                    handleCWD(sockfd, string);
-                    break;
-                case 3:
-                    printf("Enter filename: ");
-                    scanf("%s", string);
-                    handleDELE(sockfd, string);
-                    break;
-                case 4:
-                    handleHELP(sockfd);
-                    break;
-                case 5:
-                    handleLIST(sockfd);
-                    break;
-                case 6:
-                    printf("Enter directory: ");
-                    scanf("%s", string);
-                    handleMKD(sockfd, string);
-                    break;
-                case 7:
-                    printf("Enter directory: ");
-                    scanf("%s", string);
-                    handleNLST(sockfd, string);
-                    break;
-                case 8:
-                    handleNOOP(sockfd);
-                    break;
-                case 9:
-                    printf("Enter password: ");
-                    scanf("%s", string);
-                    handlePASS(sockfd, string);
-                    break;
-                case 10:
-                    handlePASV(sockfd, ipAddress, &port);
-                    break;
-                case 11:
-                    printf("Enter IP address: ");
-                    scanf("%s", ipAddress);
-                    printf("Enter port: ");
-                    scanf("%d", &port);
-                    handlePORT(sockfd, ipAddress, port);
-                    break;
-                case 12:
-                    handlePWD(sockfd);
-                    break;
-                case 13:
-                    handleQUIT(sockfd);
-                    // Close the connection
-                    closeConnection(sockfd);
-                    return 0;
-                case 14:
-                    printf("Enter filename: ");
-                    scanf("%s", string);
-                    handleRETR(sockfd, string);
-                    break;
-                case 15:
-                    printf("Enter directory: ");
-                    scanf("%s", string);
-                    handleRMD(sockfd, string);
-                    break;
-                case 16:
-                    printf("Enter old name: ");
-                    scanf("%s", string);
-                    handleRNFR(sockfd, string);
-                    break;
-                case 17:
-                    printf("Enter new name: ");
-                    scanf("%s", string);
-                    handleRNTO(sockfd, string);
-                    break;
-                case 18:
-                    printf("Enter local file: ");
-                    scanf("%s", localFile);
-                    printf("Enter remote file: ");
-                    scanf("%s", remoteFile);
-                    handleSTOR(sockfd, localFile, remoteFile);
-                    break;
-                case 19:
-                    handleSYST(sockfd);
-                    break;
-                case 20:
-                    handleUSER(sockfd, remoteFile);
-                    break;
-                case 21:
-                    handleTYPE(sockfd, remoteFile);
-                    break;
-                case 0:
-                    displayMenu();
-                default:
-                    printf("Invalid command.\n");
-                    displayMenu();
+                switch (commandNumber) {
+                    case 1:
+                        handleABOR(sockfd);
+                        break;
+                    case 2:
+                        printf("Enter directory: ");
+                        scanf("%s", string);
+                        handleCWD(sockfd, string);
+                        break;
+                    case 3:
+                        printf("Enter filename: ");
+                        scanf("%s", string);
+                        handleDELE(sockfd, string);
+                        break;
+                    case 4:
+                        handleHELP(sockfd);
+                        break;
+                    case 5:
+                        handleLIST(sockfd);
+                        break;
+                    case 6:
+                        printf("Enter directory: ");
+                        scanf("%s", string);
+                        handleMKD(sockfd, string);
+                        break;
+                    case 7:
+                        printf("Enter directory: ");
+                        scanf("%s", string);
+                        handleNLST(sockfd, string);
+                        break;
+                    case 8:
+                        handleNOOP(sockfd);
+                        break;
+                    case 9:
+                        printf("Enter password: ");
+                        scanf("%s", string);
+                        handlePASS(sockfd, string);
+                        break;
+                    case 10:
+                        handlePASV(sockfd, ipAddress, &port);
+                        break;
+                    case 11:
+                        printf("Enter IP address: ");
+                        scanf("%s", ipAddress);
+                        printf("Enter port: ");
+                        scanf("%d", &port);
+                        handlePORT(sockfd, ipAddress, port);
+                        break;
+                    case 12:
+                        handlePWD(sockfd);
+                        break;
+                    case 13:
+                        handleQUIT(sockfd);
+                        // Close the connection
+                        closeConnection(sockfd);
+                        return 0;
+                    case 14:
+                        printf("Enter filename: ");
+                        scanf("%s", string);
+                        handleRETR(sockfd, string);
+                        break;
+                    case 15:
+                        printf("Enter directory: ");
+                        scanf("%s", string);
+                        handleRMD(sockfd, string);
+                        break;
+                    case 16:
+                        printf("Enter old name: ");
+                        scanf("%s", string);
+                        handleRNFR(sockfd, string);
+                        break;
+                    case 17:
+                        printf("Enter new name: ");
+                        scanf("%s", string);
+                        handleRNTO(sockfd, string);
+                        break;
+                    case 18:
+                        printf("Enter local file: ");
+                        scanf("%s", localFile);
+                        printf("Enter remote file: ");
+                        scanf("%s", remoteFile);
+
+                        int shouldArchive;
+                        printf("Do you want to archive the file? (1 for yes, 0 for no): ");
+                        scanf("%d", &shouldArchive);
+
+                        handleSTOR(sockfd, localFile, remoteFile, shouldArchive);
+                        break;
+                    case 19:
+                        if (handleSYST(sockfd, systemType, sizeof(systemType)) == 0) {
+                            printf("Server system information: %s\n", systemType);
+                        }
+                        break;
+                    case 20:
+                        printf("Enter username: ");
+                        scanf("%s", remoteFile);
+                        handleUSER(sockfd, remoteFile);
+                        break;
+                    case 21:
+                        printf("Enter transfer mode (A for ASCII, B for Binary): ");
+                        scanf(" %c", &remoteFile);
+                        handleTYPE(sockfd, (remoteFile == 'A') ? "A" : "I");
+                        break;
+                    case 0:
+                        exitCommandLoop = true;
+                        break;
+                    default:
+                        printf("Invalid command.\n");
+                }
             }
-        } else if (strcmp(command, "3") == 0) {
-            // Receive Response
-            receiveResponse(sockfd, NULL, 0);
-        } else if (strcmp(command, "4") == 0) {
-            // Upload File
-            printf("Enter local file path: ");
-            scanf("%s", string);
-            printf("Enter remote file path: ");
-            scanf("%s", command);
-            uploadFile(sockfd, string, command);
-        } else if (strcmp(command, "5") == 0) {
-            // Download File
-            printf("Enter remote file path: ");
-            scanf("%s", string);
-            printf("Enter local file path: ");
-            scanf("%s", command);
-            downloadFile(sockfd, string, command);
-        } else if (strcmp(command, "6") == 0) {
-            // Create Directory
-            printf("Enter directory name: ");
-            scanf("%s", command);
-            createDirectory(sockfd, command);
-        } else if (strcmp(command, "7") == 0) {
-            // Pack Files
-            printf("Enter archive file path: ");
-            scanf("%s", string);
-            printf("Enter source directory: ");
-            scanf("%s", command);
-            packFiles(string, command);
-        } else if (strcmp(command, "8") == 0) {
-            // Unpack Files
-            printf("Enter archive file path: ");
-            scanf("%s", string);
-            printf("Enter destination directory: ");
-            scanf("%s", command);
-            unpackFiles(string, command);
         } else if (strcmp(command, "0") == 0) {
             // Exit the program
             break;
