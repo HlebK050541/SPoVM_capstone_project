@@ -12,18 +12,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <stdbool.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
-#include <sys/wait.h>
 #include <fcntl.h>
-#include <unistd.h>
-#include <errno.h>
 #include <time.h>
 
 // Constants
-#define DEFAULT_SERVER "127.0.0.1"
-#define DEFAULT_PORT 8080
 #define BUFFER_SIZE 512
 #define MAX_INPUT_LENGTH 256
 #define COMMAND_GETBACK "getback"
@@ -86,8 +80,6 @@ int receiveResponse(int sockfd) {
 
 // Function to authenticate the user
 int authenticate(int sockfd, const char* username, const char* password) {
-    char buffer[BUFFER_SIZE];
-
     // Send the username command to the server
     sendCommand(sockfd, "USER");
 
@@ -108,34 +100,6 @@ int authenticate(int sockfd, const char* username, const char* password) {
 
     return 0;
 }
-
-/**
-// Function to send commands to the server
-void commandMode(int sockfd) {
-    char input[MAX_INPUT_LENGTH];
-
-    printf("Enter commands or '%s' to go back to the main menu.\n", COMMAND_GETBACK);
-
-    while (1) {
-        printf("> ");
-        fgets(input, sizeof(input), stdin);
-
-        // Remove trailing newline character
-        input[strcspn(input, "\n")] = '\0';
-
-        if (strcmp(input, COMMAND_GETBACK) == 0) {
-            printf("Returning to the main menu.\n");
-            break;
-        }
-
-        // Send the command to the server
-        sendCommand(sockfd, input);
-
-        // Receive and print the response from the server
-        receiveResponse(sockfd);
-    }
-}**/
-
 
 // Function to pack files using the default Linux archiver
 int packFiles(const char* archiveFile, const char* sourceDirectory) {
@@ -162,6 +126,7 @@ int packFiles(const char* archiveFile, const char* sourceDirectory) {
     }
 }
 
+/**
 // Function to unpack files using the default Linux archiver
 int unpackFiles(const char* archiveFile, const char* destinationDirectory) {
     char command[256];
@@ -189,7 +154,7 @@ int unpackFiles(const char* archiveFile, const char* destinationDirectory) {
 
     return 0;
 }
-
+**/
 
 // Function to send a file, with an optional flag to indicate if it should be packed
 int sendFile(const char* fileName, int packFlag, int sockfd) {
@@ -329,38 +294,33 @@ void logEvent(FILE* logFile, const char* event) {
     fprintf(logFile, "[%s] %s\n", timestamp, event);
 }
 
-
 // Function to enter command mode
-void commandMode(int sockfd, const char* logFileName) {
+int commandMode(int sockfd, FILE* logFile) {
     char input[MAX_INPUT_LENGTH];
-    FILE* logFile = NULL;
-
-    // Open the log file in append mode
-    if (logFileName != NULL) {
-        logFile = fopen(logFileName, "a");
-        if (logFile == NULL) {
-            perror("Error opening log file");
-            return;
-        }
-    }
 
     printf("Enter commands or '%s' to go back to the main menu.\n", COMMAND_GETBACK);
 
     while (1) {
         printf("> ");
-        fgets(input, sizeof(input), stdin);
+        if (fgets(input, sizeof(input), stdin) == NULL) {
+            perror("Error reading input");
+            return -1;
+        }
 
         // Remove trailing newline character
         input[strcspn(input, "\n")] = '\0';
 
         if (strcmp(input, COMMAND_GETBACK) == 0) {
             printf("Returning to the main menu.\n");
-            break;
+            return 0;
         }
 
         // Log the command to the log file
         if (logFile != NULL) {
-            logEvent(logFile, input);
+            if (fprintf(logFile, "%s\n", input) < 0) {
+                perror("Error writing to log file");
+                return -1;
+            }
         }
 
         // Send the command to the server
@@ -375,7 +335,10 @@ void commandMode(int sockfd, const char* logFileName) {
 
             // Extract the file name from the command
             char fileName[MAX_INPUT_LENGTH];
-            sscanf(input, "%*s %s", fileName);
+            if (sscanf(input, "%*s %s", fileName) != 1) {
+                printf("Invalid file transfer command.\n");
+                continue;
+            }
 
             // Determine the file transfer command type
             int packFlag = 0;
@@ -392,12 +355,9 @@ void commandMode(int sockfd, const char* logFileName) {
         }
     }
 
-    // Close the log file
-    if (logFile != NULL) {
-        fclose(logFile);
-    }
+    // Control should not reach this point
+    return -1;
 }
-
 
 // Function to close the TCP/IP connection with the server
 void closeConnection(int sockfd) {
@@ -461,9 +421,16 @@ int main() {
                 logEvent(logFile, "Authentication successful.");
                 break;
             case 2:
+            {
                 // Enter command mode
-                commandMode(sockfd, logFile);
+                int result = commandMode(sockfd, logFile);
+                if (result != 0) {
+                    // Display error message
+                    fprintf(stderr, "Error occurred in command mode\n");
+                    printf("Returning to the main menu.\n");
+                }
                 break;
+            }
             case 3:
                 // Exit the program
                 printf("Closing connection and exiting...\n");
@@ -482,6 +449,4 @@ int main() {
                 break;
         }
     } while (1);
-
-    return 0;
 }
