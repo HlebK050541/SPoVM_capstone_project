@@ -1,0 +1,4 @@
+/home/hlebk/CLionProjects/CapstoneProject/SPoVM_capstone_project/FTPClient/build/CMakeFiles/package.dir
+/home/hlebk/CLionProjects/CapstoneProject/SPoVM_capstone_project/FTPClient/build/CMakeFiles/FTPClient.dir
+/home/hlebk/CLionProjects/CapstoneProject/SPoVM_capstone_project/FTPClient/build/CMakeFiles/edit_cache.dir
+/home/hlebk/CLionProjects/CapstoneProject/SPoVM_capstone_project/FTPClient/build/CMakeFiles/rebuild_cache.dir

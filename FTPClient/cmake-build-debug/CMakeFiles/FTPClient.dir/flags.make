@@ -6,5 +6,5 @@ C_DEFINES =
 
 C_INCLUDES = 
 
-C_FLAGS = -g -fdiagnostics-color=always -std=gnu11
+C_FLAGS = -O3 -DNDEBUG -fdiagnostics-color=always -w -O2 -std=gnu11
 
