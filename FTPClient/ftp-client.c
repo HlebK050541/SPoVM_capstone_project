@@ -64,7 +64,6 @@ int sendCommand(int sockfd, const char* command) {
     }
 }
 
-// Function to receive responses from the server
 int receiveResponse(int sockfd) {
     char buffer[256];
     ssize_t bytesRead = read(sockfd, buffer, sizeof(buffer));
@@ -76,31 +75,37 @@ int receiveResponse(int sockfd) {
         buffer[bytesRead] = '\0';
         printf("%s\n", buffer);
     }
+
+    // Clear the buffer
+    memset(buffer, 0, sizeof(buffer));
+
     return 0;
 }
 
 // Function to authenticate the user
 int authenticate(int sockfd, const char* username, const char* password) {
-    // Send the username command to the server
-    sendCommand(sockfd, "USER");
+    // Prepare the commands
+    char userCommand[MAX_INPUT_LENGTH];
+    snprintf(userCommand, sizeof(userCommand), "USER %s", username);
 
-    // Send the username to the server
-    sendCommand(sockfd, username);
+    char passCommand[MAX_INPUT_LENGTH];
+    snprintf(passCommand, sizeof(passCommand), "PASS %s", password);
+
+    // Send the username command to the server
+    sendCommand(sockfd, userCommand);
 
     // Receive the response from the server
     receiveResponse(sockfd);
 
     // Send the password command to the server
-    sendCommand(sockfd, "PASS");
-
-    // Send the password to the server
-    sendCommand(sockfd, password);
+    sendCommand(sockfd, passCommand);
 
     // Receive the response from the server
     receiveResponse(sockfd);
 
     return 0;
 }
+
 
 // Function to pack files using the default Linux archiver
 int packFiles(const char* archiveFile, const char* sourceDirectory) {
@@ -221,8 +226,6 @@ int sendFile(const char* fileName, int packFlag, int sockfd) {
     return 0;  // Return success code
 }
 
-
-
 // Function to receive a file from the server
 int receiveFile(const char* fileName, int sockfd) {
     if (fileName == NULL) {
@@ -253,8 +256,6 @@ int receiveFile(const char* fileName, int sockfd) {
 
     return 0;  // Return success code
 }
-
-
 
 // Function to check if a file exists
 bool fileExists(const char* filename) {
@@ -338,7 +339,7 @@ int commandMode(int sockfd, FILE* logFile) {
         printf("> ");
         if (fgets(input, sizeof(input), stdin) == NULL) {
             perror("Error reading input");
-            return -1;
+            continue;  // Continue the loop on error
         }
 
         // Remove trailing newline character
@@ -351,14 +352,14 @@ int commandMode(int sockfd, FILE* logFile) {
 
         // Log the command to the log file
         if (logFile != NULL) {
-            if (fprintf(logFile, "%s\n", input) < 0) {
-                perror("Error writing to log file");
-                return -1;
-            }
+            logEvent(logFile, input);
         }
 
         // Send the command to the server
         sendCommand(sockfd, input);
+
+        // Clear the input buffer
+        memset(input, 0, sizeof(input));
 
         // Receive and print the response from the server
         receiveResponse(sockfd);
@@ -388,9 +389,6 @@ int commandMode(int sockfd, FILE* logFile) {
             }
         }
     }
-
-    // Control should not reach this point
-    return -1;
 }
 
 // Function to close the TCP/IP connection with the server
@@ -398,16 +396,19 @@ void closeConnection(int sockfd) {
     close(sockfd);
 }
 
-
 int main() {
     char serverIP[50];
     int port;
 
     // Prompt for server's IP address and port
     printf("Enter the server's IP address: ");
-    scanf("%s", serverIP);
+    fgets(serverIP, sizeof(serverIP), stdin);
+    sscanf(serverIP, "%s", serverIP); // Remove trailing newline character
+
+    char portStr[10];
     printf("Enter the port: ");
-    scanf("%d", &port);
+    fgets(portStr, sizeof(portStr), stdin);
+    sscanf(portStr, "%d", &port); // Convert port string to integer
 
     // Establish the TCP/IP connection with the server
     int sockfd = establishConnection(serverIP, port);
@@ -428,9 +429,13 @@ int main() {
     char username[MAX_INPUT_LENGTH];
     char password[MAX_INPUT_LENGTH];
     printf("Enter your username: ");
-    scanf("%s", username);
+    fgets(username, sizeof(username), stdin);
+    sscanf(username, "%s", username); // Remove trailing newline character
+
     printf("Enter your password: ");
-    scanf("%s", password);
+    fgets(password, sizeof(password), stdin);
+    sscanf(password, "%s", password); // Remove trailing newline character
+
     authenticate(sockfd, username, password);
     logEvent(logFile, "Authentication successful.");
 
@@ -442,15 +447,21 @@ int main() {
         printf("2. Command Mode\n");
         printf("3. Exit\n");
         printf("Enter your choice: ");
-        scanf("%d", &choice);
+        char choiceStr[10];
+        fgets(choiceStr, sizeof(choiceStr), stdin);
+        sscanf(choiceStr, "%d", &choice); // Convert choice string to integer
 
         switch (choice) {
             case 1:
                 // Re-authenticate the user
                 printf("Enter your username: ");
-                scanf("%s", username);
+                fgets(username, sizeof(username), stdin);
+                sscanf(username, "%s", username); // Remove trailing newline character
+
                 printf("Enter your password: ");
-                scanf("%s", password);
+                fgets(password, sizeof(password), stdin);
+                sscanf(password, "%s", password); // Remove trailing newline character
+
                 authenticate(sockfd, username, password);
                 logEvent(logFile, "Authentication successful.");
                 break;
