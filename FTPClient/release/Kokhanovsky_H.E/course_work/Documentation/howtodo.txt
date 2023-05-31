@@ -1,0 +1,48 @@
+Building the FTP Client Project
+
+This guide provides instructions on how to build the FTP Client project using the provided Makefile. Follow the steps below to compile the project successfully.
+
+
+Step 1: Prerequisites
+Make sure you have the following prerequisites installed on your system:
+
+    GNU Make
+    GCC (GNU Compiler Collection)
+
+Step 2: Download the Project
+Download the project source code to your local machine.
+
+Step 3: Project Structure
+The project consists of the following files and directories:
+
+    ftp-client.c: The main source code file of the FTP Client.
+    Makefile: The Makefile that automates the build process.
+    Documentation/: A directory containing additional documentation files.
+
+Step 4: Building the Project
+Open a terminal and navigate to the project directory.
+
+    To build the project in release mode, run the following command:
+
+	make release
+
+    To build the project in debug mode, run the following command:
+
+	make debug
+
+Step 5: Output
+After a successful build, the compiled binary will be generated in either the release/ or debug/ directory, depending on the build mode you chose.
+
+Step 6: Creating an Archive
+To create a compressed archive of the project, including the source code and documentation, run the following command:
+
+	make tar
+
+The archive will be created with the name 050541_Kokhanovsky_H.E._Capstone_Project.tar.gz.
+
+Step 7: Cleaning
+To clean the generated build files and the archive, run the following command:
+
+	make clean
+
+This will remove the release/, debug/, and 050541_Kokhanovsky_H.E._Capstone_Project.tar.gz files/directories.
